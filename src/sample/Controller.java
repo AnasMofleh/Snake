@@ -5,11 +5,13 @@ import javafx.scene.input.KeyEvent;
 
 import java.util.Observable;
 
+import static java.lang.Math.abs;
+
 public class Controller extends Observable {
     private View v;
     private Model m;
-    private int step = 3;
     private DIRECTIONS dir;
+    private int delay = 100;
 
 
     public Controller(Model m, View v) {
@@ -21,19 +23,36 @@ public class Controller extends Observable {
 
     public void addListeners() {
         m.getScene().addPreLayoutPulseListener(() -> {
-            m.getHead().setHeight(m.getHeight());
-            m.getHead().setWidth(m.getWidth());
+            m.getHead().setHeight(m.getHeightRatio() * m.getDim());
+            m.getHead().setWidth(m.getWidthRatio() * m.getDim());
+            m.getFood().setHeight(m.getHeightRatio() * m.getDim()/1.5);
+            m.getFood().setWidth(m.getWidthRatio() * m.getDim()/1.5);
+        });
 
+        m.getScene().addPreLayoutPulseListener(() -> {
+            double shiftingConstant = (m.getDim() - m.getDecreasingFactor()) / 2.0;
+            if(abs(m.getHead().getX() - (m.getFood().getX() - shiftingConstant))  <= 0
+            && abs((m.getHead().getY()) - (m.getFood().getY() - shiftingConstant))  <= 0){
+                m.getLayout().getChildren().remove(m.getFood());
+                m.createFood();
+            }
+        });
+
+        m.getScene().addPreLayoutPulseListener(() -> {
             var x = m.getHead().getX();
             var y = m.getHead().getY();
-
             switch (dir) {
-                case EAST -> m.getHead().setX(x + step);
-                case WEST -> m.getHead().setX(x - step);
-                case NORTH -> m.getHead().setY(y - step);
-                case SOUTH -> m.getHead().setY(y + step);
+                case EAST -> m.getHead().setX(x + m.getDim());
+                case WEST -> m.getHead().setX(x - m.getDim());
+                case NORTH -> m.getHead().setY(y - m.getDim());
+                case SOUTH -> m.getHead().setY(y + m.getDim());
             }
             moveInGrid(m.getHead().getX(), m.getHead().getY());
+            try {
+                Thread.sleep(delay);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         });
 
         m.getScene().addEventFilter(KeyEvent.KEY_PRESSED, event -> {
